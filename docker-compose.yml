@@ -10,9 +10,9 @@ services:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: factory_assets
       MYSQL_USER: developer
-      MYSQL_PASSWORD: dev_password
+      MYSQL_PASSWORD: 123456
     ports:
-      - "3307" # ใช้ 3307 เพื่อไม่ให้ชนกับ MySQL ในเครื่องคุณ (3306)
+      - "3307:3306" # ใช้ 3307 เพื่อไม่ให้ชนกับ MySQL ในเครื่องคุณ (3306)
     volumes:
       - mysql_data:/var/lib/mysql
 
