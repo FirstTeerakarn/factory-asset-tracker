@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useAssets } from '../hooks/useAssets'
 import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
@@ -55,13 +55,12 @@ export default function AssetsPage() {
   const { isAdmin, user } = useAuth()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterCategory, setFilterCategory] = useState('') // เพิ่ม State สำหรับกรองหมวดหมู่
+  const [filterCategory, setFilterCategory] = useState('')
   
   const [createOpen, setCreateOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
 
-  // ดึงข้อมูลอุปกรณ์ (Backend รองรับ category query แล้ว)
   const {
     assets, loading,
     createAsset, updateAsset, deleteAsset,
@@ -122,7 +121,6 @@ export default function AssetsPage() {
         )}
       </div>
 
-      {/* ส่วนตัวกรองข้อมูล */}
       <div className="flex flex-wrap gap-3 mb-6 fade-up-1">
         <input className="input max-w-xs" placeholder="ค้นหาชื่อ หรือรหัส..." value={search} onChange={(e) => setSearch(e.target.value)} />
         
@@ -142,60 +140,67 @@ export default function AssetsPage() {
         </select>
       </div>
 
-      {/* ส่วนแสดงผลข้อมูลแบบจัดกลุ่ม */}
-      <div className="fade-up-2">
+      <div className="card p-0 overflow-hidden fade-up-2">
         {loading ? (
-          <div className="flex justify-center py-16 card"><Spinner size="lg" /></div>
+          <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : assets.length === 0 ? (
-          <div className="card p-0"><EmptyState icon="⊟" title="ไม่พบอุปกรณ์" desc="ลองเปลี่ยนเงื่อนไขการค้นหา" /></div>
+          <EmptyState icon="⊟" title="ไม่พบอุปกรณ์" desc="ลองเปลี่ยนเงื่อนไขการค้นหา" />
         ) : (
-          Object.entries(groupedAssets).sort().map(([categoryName, items]) => (
-            <div key={categoryName} className="mb-8 last:mb-0">
-              <h2 className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-brand-500"></span>
-                {categoryName} <span className="text-slate-500 text-xs">({items.length})</span>
-              </h2>
-              <div className="card p-0 overflow-hidden">
-                <table className="w-full">
-                  <thead className="border-b border-surface-border bg-surface-hover/30">
-                    <tr>
-                      <th className="th">รหัส</th>
-                      <th className="th">ชื่ออุปกรณ์</th>
-                      <th className="th">สถานะ</th>
-                      <th className="th">ผู้ใช้งาน</th>
-                      <th className="th text-right">การกระทำ</th>
+          <table className="w-full">
+            <thead className="border-b border-surface-border bg-surface-hover/30">
+              <tr>
+                <th className="th">รหัส</th>
+                <th className="th">ชื่ออุปกรณ์</th>
+                <th className="th">สถานะ</th>
+                <th className="th">ผู้ใช้งาน</th>
+                <th className="th text-right">การกระทำ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(groupedAssets).sort().map(([categoryName, items]) => (
+                <React.Fragment key={categoryName}>
+                  {/* แถวคั่นหมวดหมู่ */}
+                  <tr className="bg-surface-hover/40 border-b border-surface-border">
+                    <td colSpan="5" className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                          {categoryName}
+                        </span>
+                        <span className="text-xs text-slate-500 font-mono">({items.length})</span>
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  {/* รายการอุปกรณ์ในหมวดหมู่นั้นๆ */}
+                  {items.map((a) => (
+                    <tr key={a.id} className="table-row">
+                      <td className="td font-mono text-xs text-slate-400">{a.asset_code}</td>
+                      <td className="td font-medium text-slate-200">{a.name}</td>
+                      <td className="td"><StatusBadge status={a.status} /></td>
+                      <td className="td text-slate-400">{a.checked_out_by ?? '—'}</td>
+                      <td className="td">
+                        <div className="flex items-center justify-end gap-2">
+                          {a.status === 'available' && (
+                            <button onClick={() => run(() => checkoutAsset(a))} className="btn-outline text-xs py-1">เบิก</button>
+                          )}
+                          {a.status === 'in_use' && (isAdmin || a.current_user_id === user?.id) && (
+                            <button onClick={() => run(() => checkinAsset(a))} className="btn-outline text-xs py-1 text-emerald-400 border-emerald-900/60">คืน</button>
+                          )}
+                          {isAdmin && (
+                            <>
+                              <button onClick={() => setEditItem(a)} className="btn-ghost text-xs py-1">แก้ไข</button>
+                              <button onClick={() => setDeleteItem(a)} className="btn-danger text-xs py-1">ลบ</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((a) => (
-                      <tr key={a.id} className="table-row">
-                        <td className="td font-mono text-xs text-slate-400">{a.asset_code}</td>
-                        <td className="td font-medium text-slate-200">{a.name}</td>
-                        <td className="td"><StatusBadge status={a.status} /></td>
-                        <td className="td text-slate-400">{a.checked_out_by ?? '—'}</td>
-                        <td className="td">
-                          <div className="flex items-center justify-end gap-2">
-                            {a.status === 'available' && (
-                              <button onClick={() => run(() => checkoutAsset(a))} className="btn-outline text-xs py-1">เบิก</button>
-                            )}
-                            {a.status === 'in_use' && (isAdmin || a.current_user_id === user?.id) && (
-                              <button onClick={() => run(() => checkinAsset(a))} className="btn-outline text-xs py-1 text-emerald-400 border-emerald-900/60">คืน</button>
-                            )}
-                            {isAdmin && (
-                              <>
-                                <button onClick={() => setEditItem(a)} className="btn-ghost text-xs py-1">แก้ไข</button>
-                                <button onClick={() => setDeleteItem(a)} className="btn-danger text-xs py-1">ลบ</button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
