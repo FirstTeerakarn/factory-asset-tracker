@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5000
 
 # คำสั่งสตาร์ทเซิร์ฟเวอร์
-CMD ["node", "app.js"]
+CMD ["node", "src/app.js"]
