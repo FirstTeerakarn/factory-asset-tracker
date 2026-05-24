@@ -22,10 +22,37 @@ const ACTION_LABEL = {
   deleted: 'ลบอุปกรณ์', checked_out: 'เบิกอุปกรณ์', checked_in: 'คืนอุปกรณ์',
 }
 
+// ─── แยก Component ย่อยสำหรับดึงและแสดงผล Log (จะรันเฉพาะ Admin) ───
+function RecentLogsSection() {
+  const { logs, loading: logsLoading } = useLogs({ limit: 8 })
+
+  if (logsLoading) return <Spinner size="sm" />
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {logs.length === 0 && <p className="text-xs text-slate-500">ยังไม่มีกิจกรรม</p>}
+      {logs.map((l) => (
+        <div key={l.id} className="flex items-start gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-slate-300">
+              <span className="text-slate-400">{l.username}</span>
+              {' '}{ACTION_LABEL[l.action] ?? l.action}{' '}
+              <span className="text-slate-400">{l.asset_name ?? `#${l.asset_id}`}</span>
+            </p>
+            <p className="text-[11px] text-slate-600 font-mono mt-0.5">
+              {new Date(l.log_date).toLocaleString('th-TH')}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
   const { assets, loading: assetsLoading } = useAssets()
-  const { logs, loading: logsLoading } = useLogs({ limit: 8 })
 
   const counts = {
     total:       assets.length,
@@ -70,29 +97,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* เรียกใช้ Component ย่อยภายใต้เงื่อนไข isAdmin ทำให้ Staff จะไม่รันลอจิกดึง Log เลย */}
         {isAdmin && (
           <div className="card">
             <h2 className="text-sm font-medium text-slate-300 mb-4">กิจกรรมล่าสุด</h2>
-            {logsLoading ? <Spinner size="sm" /> : (
-              <div className="flex flex-col gap-2.5">
-                {logs.length === 0 && <p className="text-xs text-slate-500">ยังไม่มีกิจกรรม</p>}
-                {logs.map((l) => (
-                  <div key={l.id} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-300">
-                        <span className="text-slate-400">{l.username}</span>
-                        {' '}{ACTION_LABEL[l.action] ?? l.action}{' '}
-                        <span className="text-slate-400">{l.asset_name ?? `#${l.asset_id}`}</span>
-                      </p>
-                      <p className="text-[11px] text-slate-600 font-mono mt-0.5">
-                        {new Date(l.log_date).toLocaleString('th-TH')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <RecentLogsSection />
           </div>
         )}
       </div>
