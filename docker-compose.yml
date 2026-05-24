@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Database Service (MySQL)
+  # 1. Database Service (MySQL)
   db:
     image: mysql:8.0
     container_name: asset_tracker_db
@@ -12,9 +12,40 @@ services:
       MYSQL_USER: developer
       MYSQL_PASSWORD: 123456
     ports:
-      - "3307:3306" # ใช้ 3307 เพื่อไม่ให้ชนกับ MySQL ในเครื่องคุณ (3306)
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # แมปไฟล์ SQL เพื่อให้ Database สร้างตารางอัตโนมัติ
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # 2. Backend Service
+  backend:
+    build: ./backend
+    container_name: factory_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DB_HOST=db       # ชี้ไปหาชื่อ Service 'db'
+      - DB_PORT=3306     # คุยกันใน Network Docker ด้วยพอร์ต 3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - DB_NAME=factory_assets
+      - JWT_SECRET=factory_asset_tracker_super_secret_2024
+      - JWT_EXPIRES_IN=8h
+    depends_on:
+      - db
+
+  # 3. Frontend Service
+  frontend:
+    build: ./frontend
+    container_name: factory_frontend
+    restart: always
+    ports:
+      - "3000:80"        # นำพอร์ต 80 ของ Nginx ออกมาที่ 3000 บนเครื่องคุณ
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:
