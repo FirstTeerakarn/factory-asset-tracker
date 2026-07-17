@@ -4,6 +4,7 @@ import { toast } from '../components/ui'
 
 export function useAssets(filters = {}) {
   const [assets, setAssets] = useState([])
+  const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -13,6 +14,7 @@ export function useAssets(filters = {}) {
     try {
       const res = await assetApi.getAll(filters)
       setAssets(res.data.data)
+      setMeta(res.data.meta)
     } catch (err) {
       setError(err.response?.data?.message ?? 'โหลดข้อมูลล้มเหลว')
     } finally {
@@ -58,6 +60,7 @@ export function useAssets(filters = {}) {
 
   return {
     assets,
+    meta,
     loading,
     error,
     refetch: fetch,

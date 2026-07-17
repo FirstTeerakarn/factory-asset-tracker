@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { userApi } from '../services/api'
 import { toast } from '../components/ui'
 
-export function useUsers() {
+export function useUsers(filters = {}) {
   const [users, setUsers] = useState([])
+  const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -11,8 +12,9 @@ export function useUsers() {
     setLoading(true)
     setError(null)
     try {
-      const res = await userApi.getAll()
+      const res = await userApi.getAll(filters)
       setUsers(res.data.data)
+      setMeta(res.data.meta)
     } catch (err) {
       setError(err.response?.data?.message ?? 'โหลดข้อมูลล้มเหลว')
     } finally {
@@ -45,6 +47,7 @@ export function useUsers() {
 
   return {
     users,
+    meta,
     loading,
     error,
     refetch: fetch,

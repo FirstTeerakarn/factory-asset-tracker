@@ -36,7 +36,8 @@ function UserForm({ initial = EMPTY_FORM, isEdit = false, onSave, loading }) {
 
 export default function UsersPage() {
   const { user: me } = useAuth()
-  const { users, loading, createUser, updateUser, deleteUser } = useUsers()
+  const [page, setPage] = useState(1)
+  const { users, meta, loading, createUser, updateUser, deleteUser } = useUsers({ page, limit: 50 })
   const { run, loading: actionLoading } = useAsync()
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -120,6 +121,28 @@ export default function UsersPage() {
           </table>
         )}
       </div>
+
+      {!loading && meta && Math.ceil(meta.total / meta.limit) > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page === 1} 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+          >
+            ก่อนหน้า
+          </button>
+          <span className="text-sm text-slate-400">
+            หน้า {page} จาก {Math.ceil(meta.total / meta.limit)}
+          </span>
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page >= Math.ceil(meta.total / meta.limit)} 
+            onClick={() => setPage(p => p + 1)}
+          >
+            ถัดไป
+          </button>
+        </div>
+      )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="เพิ่มพนักงานใหม่">
         <UserForm onSave={handleCreate} loading={actionLoading} />

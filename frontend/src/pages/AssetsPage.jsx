@@ -3,72 +3,28 @@ import { useAssets } from '../hooks/useAssets'
 import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
 import { StatusBadge, Modal, ConfirmDialog, Spinner, EmptyState } from '../components/ui'
-
-const EMPTY_FORM = { asset_code: '', name: '', category: '', status: 'available' }
-
-function AssetForm({ initial = EMPTY_FORM, existingCategories = [], onSave, loading }) {
-  const [form, setForm] = useState(initial)
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">รหัสอุปกรณ์</label>
-          <input className="input" placeholder="TL-001" value={form.asset_code} onChange={(e) => set('asset_code', e.target.value)} />
-        </div>
-        <div>
-          <label className="label">หมวดหมู่</label>
-          {/* ใช้ input คู่กับ datalist เพื่อให้เลือกของเดิม หรือพิมพ์ใหม่ก็ได้ */}
-          <input 
-            className="input" 
-            list="category-options"
-            placeholder="เลือกหรือพิมพ์ใหม่..." 
-            value={form.category} 
-            onChange={(e) => set('category', e.target.value)} 
-          />
-          <datalist id="category-options">
-            {existingCategories.map(cat => <option key={cat} value={cat} />)}
-          </datalist>
-        </div>
-      </div>
-      <div>
-        <label className="label">ชื่ออุปกรณ์</label>
-        <input className="input" placeholder="กรอกชื่ออุปกรณ์" value={form.name} onChange={(e) => set('name', e.target.value)} />
-      </div>
-      <div>
-        <label className="label">สถานะ</label>
-        <select className="input" value={form.status} onChange={(e) => set('status', e.target.value)}>
-          <option value="available">ว่าง (Available)</option>
-          <option value="in_use">กำลังใช้ (In Use)</option>
-          <option value="maintenance">ซ่อมบำรุง (Maintenance)</option>
-        </select>
-      </div>
-      <button onClick={() => onSave(form)} disabled={loading} className="btn-primary w-full justify-center mt-1">
-        {loading ? <Spinner size="sm" /> : 'บันทึก'}
-      </button>
-    </div>
-  )
-}
+import AssetForm from '../components/assets/AssetForm'
 
 export default function AssetsPage() {
   const { isAdmin, user } = useAuth()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [page, setPage] = useState(1)
   
   const [createOpen, setCreateOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
 
   const {
-    assets, loading,
+    assets, meta, loading,
     createAsset, updateAsset, deleteAsset,
     checkoutAsset, checkinAsset,
   } = useAssets({ 
     status: filterStatus || undefined, 
     search: search || undefined,
-    category: filterCategory || undefined 
+    category: filterCategory || undefined,
+    page
   })
 
   const { run, loading: actionLoading } = useAsync()
@@ -122,17 +78,17 @@ export default function AssetsPage() {
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6 fade-up-1">
-        <input className="input max-w-xs" placeholder="ค้นหาชื่อ หรือรหัส..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input max-w-xs" placeholder="ค้นหาชื่อ หรือรหัส..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         
         {/* Dropdown กรองหมวดหมู่ */}
-        <select className="input max-w-[180px]" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+        <select className="input max-w-[180px]" value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}>
           <option value="">ทุกหมวดหมู่</option>
           {uniqueCategories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
 
-        <select className="input max-w-[160px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <select className="input max-w-[160px]" value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}>
           <option value="">ทุกสถานะ</option>
           <option value="available">ว่าง</option>
           <option value="in_use">กำลังใช้</option>
@@ -203,6 +159,28 @@ export default function AssetsPage() {
           </table>
         )}
       </div>
+
+      {!loading && meta && Math.ceil(meta.total / meta.limit) > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page === 1} 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+          >
+            ก่อนหน้า
+          </button>
+          <span className="text-sm text-slate-400">
+            หน้า {page} จาก {Math.ceil(meta.total / meta.limit)}
+          </span>
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page >= Math.ceil(meta.total / meta.limit)} 
+            onClick={() => setPage(p => p + 1)}
+          >
+            ถัดไป
+          </button>
+        </div>
+      )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="เพิ่มอุปกรณ์ใหม่">
         <AssetForm existingCategories={uniqueCategories} onSave={handleCreate} loading={actionLoading} />
