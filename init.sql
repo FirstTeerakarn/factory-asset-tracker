@@ -15,6 +15,9 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+CREATE DATABASE IF NOT EXISTS `factory_asset_tracker`;
+USE `factory_asset_tracker`;
+
 --
 -- Table structure for table `activity_logs`
 --
@@ -64,7 +67,7 @@ CREATE TABLE `assets` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `asset_code` (`asset_code`),
   KEY `fk_asset_current_user` (`current_user_id`),
-  CONSTRAINT `fk_asset_current_user` FOREIGN KEY (`current_user_id`) REFERENCES `users` (`id`)
+  CONSTRAINT `fk_asset_current_user` FOREIGN KEY (`current_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

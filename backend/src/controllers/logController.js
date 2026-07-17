@@ -3,7 +3,11 @@ const { pool } = require("../config/database");
 // GET /api/logs — Admin only
 const getAllLogs = async (req, res) => {
   try {
-    const { asset_id, user_id, action, limit = 100 } = req.query;
+    const { asset_id, user_id, action, page = 1, limit = 50 } = req.query;
+
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
 
     let query = `
       SELECT 
@@ -17,6 +21,12 @@ const getAllLogs = async (req, res) => {
       LEFT JOIN assets a ON al.asset_id = a.id
       LEFT JOIN users u ON al.user_id = u.id
     `;
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM activity_logs al
+      LEFT JOIN assets a ON al.asset_id = a.id
+      LEFT JOIN users u ON al.user_id = u.id
+    `;
     const conditions = [];
     const values = [];
 
@@ -25,13 +35,24 @@ const getAllLogs = async (req, res) => {
     if (action) { conditions.push("al.action = ?"); values.push(action); }
 
     if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
+      const whereClause = " WHERE " + conditions.join(" AND ");
+      query += whereClause;
+      countQuery += whereClause;
     }
-    query += " ORDER BY al.log_date DESC LIMIT ?";
-    values.push(parseInt(limit));
+    query += " ORDER BY al.log_date DESC LIMIT ? OFFSET ?";
 
-    const [rows] = await pool.query(query, values);
-    res.json({ success: true, data: rows });
+    const [rows] = await pool.query(query, [...values, parsedLimit, offset]);
+    const [countRows] = await pool.query(countQuery, values);
+
+    res.json({ 
+      success: true, 
+      data: rows,
+      meta: {
+        total: countRows[0].total,
+        page: parsedPage,
+        limit: parsedLimit
+      }
+    });
   } catch (err) {
     console.error("GetAllLogs error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });

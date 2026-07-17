@@ -12,7 +12,8 @@ const ACTION_MAP = {
 
 export default function LogsPage() {
   const [filterAction, setFilterAction] = useState('')
-  const { logs, loading } = useLogs({ action: filterAction || undefined, limit: 200 })
+  const [page, setPage] = useState(1)
+  const { logs, meta, loading } = useLogs({ action: filterAction || undefined, limit: 50, page })
 
   return (
     <div className="p-6">
@@ -21,7 +22,7 @@ export default function LogsPage() {
           <h1 className="text-xl font-medium text-slate-100">ประวัติกิจกรรม</h1>
           <p className="text-sm text-slate-500 mt-0.5">บันทึกความเคลื่อนไหวทั้งหมดในระบบ</p>
         </div>
-        <select className="input max-w-[180px]" value={filterAction} onChange={(e) => setFilterAction(e.target.value)}>
+        <select className="input max-w-[180px]" value={filterAction} onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}>
           <option value="">ทุกกิจกรรม</option>
           <option value="checked_out">เบิกอุปกรณ์</option>
           <option value="checked_in">คืนอุปกรณ์</option>
@@ -76,6 +77,28 @@ export default function LogsPage() {
           </table>
         )}
       </div>
+
+      {!loading && meta && Math.ceil(meta.total / meta.limit) > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page === 1} 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+          >
+            ก่อนหน้า
+          </button>
+          <span className="text-sm text-slate-400">
+            หน้า {page} จาก {Math.ceil(meta.total / meta.limit)}
+          </span>
+          <button 
+            className="btn-outline text-sm" 
+            disabled={page >= Math.ceil(meta.total / meta.limit)} 
+            onClick={() => setPage(p => p + 1)}
+          >
+            ถัดไป
+          </button>
+        </div>
+      )}
     </div>
   )
 }

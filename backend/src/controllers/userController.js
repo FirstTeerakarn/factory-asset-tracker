@@ -4,10 +4,27 @@ const { pool } = require("../config/database");
 // GET /api/users — Admin only
 const getAllUsers = async (req, res) => {
   try {
+    const { page = 1, limit = 50 } = req.query;
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
+
     const [rows] = await pool.query(
-      "SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at DESC"
+      "SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      [parsedLimit, offset]
     );
-    res.json({ success: true, data: rows });
+
+    const [countRows] = await pool.query("SELECT COUNT(*) as total FROM users");
+
+    res.json({ 
+      success: true, 
+      data: rows,
+      meta: {
+        total: countRows[0].total,
+        page: parsedPage,
+        limit: parsedLimit
+      }
+    });
   } catch (err) {
     console.error("GetAllUsers error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
